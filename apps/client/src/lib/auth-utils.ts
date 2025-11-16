@@ -7,7 +7,7 @@ export const requireAuth = async () => {
         headers: await headers(),
     });
 
-    if (!session) redirect("/auth/login");
+    if (!session) redirect("/sign-in");
     return session;
 };
 
@@ -16,5 +16,5 @@ export const requireUnAuth = async () => {
         headers: await headers(),
     });
 
-    if (session) redirect("/");
+    if (session) redirect("/chat");
 };

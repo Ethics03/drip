@@ -1,13 +1,75 @@
 "use client";
 
-import { AtSignIcon, ChevronLeftIcon } from "lucide-react";
+import { AtSignIcon, ChevronLeftIcon, Loader2Icon } from "lucide-react";
 import type React from "react";
-import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { FloatingPaths } from "./floating-paths";
+import { z } from "zod";
+import { authClient } from "@/lib/auth-client";
+import { toast } from "sonner";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { useState } from "react";
+import Link from "next/link";
+
+const signInSchema = z.object({
+    email: z.email("Email is required"),
+});
+
+type SignInValues = z.infer<typeof signInSchema>;
 
 export function AuthPage() {
+    const [isOAuthPending, setIsOAuthPending] = useState(false);
+    const form = useForm<SignInValues>({
+        resolver: zodResolver(signInSchema),
+        defaultValues: {
+            email: "",
+        },
+    });
+
+    const isPending = form.formState.isSubmitting || isOAuthPending;
+
+    const onSubmit = async (values: SignInValues) => {
+        await authClient.signIn.magicLink(
+            {
+                email: values.email,
+            },
+            {
+                onSuccess: () => {
+                    toast.success("Verification link sent to your email!");
+                },
+                onError: (ctx) => {
+                    console.error("Login error:", ctx.error);
+                    toast.error(ctx.error.message);
+                },
+            }
+        );
+    };
+
+    const handleOAuth = async (provider: "google" | "github" | "apple") => {
+        setIsOAuthPending(true);
+        try {
+            await authClient.signIn.social(
+                {
+                    provider,
+                    callbackURL: "/chat",
+                },
+                {
+                    onError: (err) => {
+                        console.error(err);
+                        toast.error("Something went wrong!");
+                    },
+                }
+            );
+        } catch (err) {
+            console.error(err);
+            toast.error("Something went wrong!");
+        } finally {
+            setIsOAuthPending(false);
+        }
+    };
+
     return (
         <main className="relative md:h-screen md:overflow-hidden lg:grid lg:grid-cols-2">
             <div className="relative hidden h-full flex-col border-r bg-secondary p-10 lg:flex dark:bg-secondary/20">
@@ -35,27 +97,33 @@ export function AuthPage() {
                     <div className="-translate-y-87.5 absolute top-0 right-0 h-320 w-60 rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,--theme(--color-foreground/.04)_0,--theme(--color-foreground/.01)_80%,transparent_100%)]" />
                 </div>
                 <Button asChild className="absolute top-7 left-5" variant="ghost">
-                    <a href="#">
+                    <Link href="/">
                         <ChevronLeftIcon />
                         Home
-                    </a>
+                    </Link>
                 </Button>
                 <div className="mx-auto space-y-4 sm:w-sm">
-                    <Logo className="h-5 lg:hidden" />
+                    {/* <Logo className="h-5 lg:hidden" /> */}
                     <div className="flex flex-col space-y-1">
                         <h1 className="font-bold text-2xl tracking-wide">Sign In or Join Now!</h1>
                         <p className="text-base text-muted-foreground">login or create your efferd account.</p>
                     </div>
                     <div className="space-y-2">
-                        <Button className="w-full" size="lg" type="button">
+                        <Button
+                            className="w-full"
+                            size="lg"
+                            type="button"
+                            disabled={isPending}
+                            onClick={() => handleOAuth("google")}
+                        >
                             <GoogleIcon />
                             Continue with Google
                         </Button>
-                        <Button className="w-full" size="lg" type="button">
+                        <Button className="w-full" size="lg" type="button" disabled={isPending} onClick={() => {}}>
                             <AppleIcon />
                             Continue with Apple
                         </Button>
-                        <Button className="w-full" size="lg" type="button">
+                        <Button className="w-full" size="lg" type="button" disabled={isPending} onClick={() => {}}>
                             <GithubIcon />
                             Continue with GitHub
                         </Button>
@@ -67,18 +135,27 @@ export function AuthPage() {
                         <div className="h-px w-full bg-border" />
                     </div>
 
-                    <form className="space-y-2">
+                    <form className="space-y-2" onSubmit={form.handleSubmit(onSubmit)}>
                         <p className="text-start text-muted-foreground text-xs">
                             Enter your email address to sign in or create an account
                         </p>
                         <InputGroup>
-                            <InputGroupInput placeholder="your.email@example.com" type="email" />
+                            <InputGroupInput
+                                placeholder="your.email@example.com"
+                                type="email"
+                                {...form.register("email")}
+                            />
                             <InputGroupAddon>
                                 <AtSignIcon />
                             </InputGroupAddon>
                         </InputGroup>
 
-                        <Button className="w-full" type="button">
+                        {form.formState.errors.email && (
+                            <p className="text-red-500 text-xs">{form.formState.errors.email.message}</p>
+                        )}
+
+                        <Button className="w-full" type="submit" disabled={isPending}>
+                            {isPending && <Loader2Icon className="size-4 animate-spin" />}
                             Continue With Email
                         </Button>
                     </form>
