@@ -4,3 +4,4 @@ dist
 .next
 package.json
 bun.lock
+turbo.json

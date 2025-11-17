@@ -123,7 +123,13 @@ export function AuthPage() {
                             <AppleIcon />
                             Continue with Apple
                         </Button>
-                        <Button className="w-full" size="lg" type="button" disabled={isPending} onClick={() => {}}>
+                        <Button
+                            className="w-full"
+                            size="lg"
+                            type="button"
+                            disabled={isPending}
+                            onClick={() => handleOAuth("github")}
+                        >
                             <GithubIcon />
                             Continue with GitHub
                         </Button>
