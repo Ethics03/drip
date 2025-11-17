@@ -23,6 +23,7 @@
   ],
   "dependencies": {
     "@google/genai": "^1.29.1",
-    "@google/generative-ai": "^0.24.1"
+    "@google/generative-ai": "^0.24.1",
+    "resend": "^6.4.2"
   }
 }
